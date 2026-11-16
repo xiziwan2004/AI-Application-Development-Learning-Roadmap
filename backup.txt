@@ -1,0 +1,295 @@
+// ============================================================
+// 1.3 函数
+// ============================================================
+
+// ============================================================
+// 1. 函数声明（有提升）
+// ============================================================
+// 函数声明会整体提升，可以在声明前调用。
+console.log("---- 1. 函数声明 ----");
+
+console.log(add(2, 3)); // 5，声明前调用也合法
+
+function add(a, b = 0) {
+  return a + b;
+}
+
+console.log(add(2));       // 2，b 使用默认值 0
+console.log(add(2, undefined)); // 2，显式传 undefined 也触发默认值
+console.log(add(2, null)); // 2，null 不会触发默认值，但 null + 2 = 2
+
+// 说明：
+// - 默认参数只在参数为 undefined（或没传）时生效。
+// - 函数声明提升的是整个函数，包括函数体。
+
+// ============================================================
+// 2. 函数表达式（不提升）
+// ============================================================
+// 函数表达式赋值给变量，变量声明提升，但赋值不提升。
+console.log("\n---- 2. 函数表达式 ----");
+
+const sub = function (a, b) {
+  return a - b;
+};
+
+console.log(sub(5, 3)); // 2
+
+// 下面这样会报错，因为 sub2 在赋值前是 undefined
+// console.log(sub2(5, 3)); // TypeError: sub2 is not a function
+const sub2 = function (a, b) {
+  return a - b;
+};
+
+// 具名函数表达式：函数名只在函数内部可用
+const factorial = function fact(n) {
+  return n <= 1 ? 1 : n * fact(n - 1);
+};
+console.log(factorial(5)); // 120
+// console.log(fact(5));   // ReferenceError，fact 只在函数内部可见
+
+// ============================================================
+// 3. 箭头函数
+// ============================================================
+// 箭头函数是函数表达式的简写，没有自己的 this、arguments、super、new.target。
+console.log("\n---- 3. 箭头函数 ----");
+
+// 单参数可省略括号
+const double = n => n * 2;
+console.log(double(3)); // 6
+
+// 多参数要括号
+const mul = (a, b) => a * b;
+console.log(mul(2, 3)); // 6
+
+// 无参数要空括号
+const getPi = () => 3.14;
+console.log(getPi()); // 3.14
+
+// 单表达式可省略 return 和 {}
+const square = n => n * n;
+console.log(square(4)); // 16
+
+// 返回对象字面量要包一层小括号，否则 {} 会被当成函数体
+const getUser = () => ({ name: 'Ada' });
+console.log(getUser()); // { name: 'Ada' }
+
+// 多行函数体要加 {} 和 return
+const max = (a, b) => {
+  const result = a > b ? a : b;
+  return result;
+};
+console.log(max(3, 7)); // 7
+
+// ============================================================
+// 4. 参数默认值与剩余参数
+// ============================================================
+console.log("\n---- 4. 参数默认值与剩余参数 ----");
+
+// 默认参数
+function greet(name = '匿名', greeting = '你好') {
+  return `${greeting}，${name}`;
+}
+console.log(greet());              // 你好，匿名
+console.log(greet('Ada'));         // 你好，Ada
+console.log(greet('Ada', 'Hi'));   // Hi，Ada
+
+// 默认参数可以是表达式，甚至引用前面的参数
+function createUser(name, id = name.toLowerCase()) {
+  return { name, id };
+}
+console.log(createUser('Ada')); // { name: 'Ada', id: 'ada' }
+
+// 剩余参数：收集所有剩余实参为真数组
+function sum(...nums) {
+  return nums.reduce((total, n) => total + n, 0);
+}
+console.log(sum(1, 2, 3));    // 6
+console.log(sum());           // 0
+console.log(sum(1, 2, 3, 4)); // 10
+
+// 剩余参数必须放最后
+function log(level, ...messages) {
+  console.log(`[${level}]`, ...messages);
+}
+log('INFO', 'a', 'b'); // [INFO] a b
+
+// 对比 arguments：arguments 是类数组，不是真数组
+function oldSum() {
+  // arguments 有 length 和索引，但没有 reduce、map 等方法
+  return Array.from(arguments).reduce((total, n) => total + n, 0);
+}
+console.log(oldSum(1, 2, 3)); // 6
+
+// 说明：
+// - 剩余参数是真正的数组，可直接用数组方法。
+// - arguments 是类数组对象，箭头函数中没有 arguments。
+
+// ============================================================
+// 5. 箭头函数的 this 与 arguments 差异
+// ============================================================
+console.log("\n---- 5. 箭头函数的 this 与 arguments ----");
+
+// ---------- 5.1 普通函数的 this 是动态的 ----------
+const obj1 = {
+  name: 'obj1',
+  say() {
+    console.log('普通函数 this.name:', this.name);
+  },
+};
+obj1.say(); // obj1
+
+const detached = obj1.say;
+// detached(); // 严格模式下 this 是 undefined，非严格模式下是全局对象
+
+// ---------- 5.2 箭头函数没有自己的 this，继承外层 ----------
+const obj2 = {
+  name: 'obj2',
+  say: () => {
+    // 这里的 this 是外层作用域的 this，不是 obj2
+    console.log('箭头函数 this.name:', this.name);
+  },
+};
+obj2.say(); // undefined（模块/严格模式下 this 不是 obj2）
+
+// ---------- 5.3 经典场景：setInterval 中的 this ----------
+const counter = {
+  count: 0,
+  start() {
+    setInterval(() => {
+      this.count++; // 箭头函数继承 start 的 this，即 counter
+      console.log('counter.count:', this.count);
+      if (this.count >= 3) {
+        // 演示用，实际应保存 timer id 并 clearInterval
+      }
+    }, 1000);
+  },
+};
+// counter.start(); // 每秒输出 1、2、3...
+
+// 如果换成普通函数，this 会指向 setInterval 的调用者（浏览器中是 window），拿不到 counter.count
+const counterBad = {
+  count: 0,
+  start() {
+    setInterval(function () {
+      // this.count++; // 这里 this 不是 counterBad
+    }, 1000);
+  },
+};
+
+// ---------- 5.4 箭头函数没有 arguments ----------
+function normalFn() {
+  console.log('普通函数 arguments:', arguments);
+}
+normalFn(1, 2, 3); // [Arguments] { '0': 1, '1': 2, '2': 3 }
+
+const arrowFn = () => {
+  // console.log(arguments); // ReferenceError: arguments is not defined
+};
+arrowFn();
+
+// 箭头函数要用剩余参数代替 arguments
+const arrowFn2 = (...args) => {
+  console.log('箭头函数剩余参数:', args); // 真数组
+};
+arrowFn2(1, 2, 3); // [ 1, 2, 3 ]
+
+// ============================================================
+// 6. 闭包
+// ============================================================
+// 闭包：函数记住并访问其定义时的作用域，即使外层函数已经执行完毕。
+console.log("\n---- 6. 闭包 ----");
+
+function createCounter() {
+  let value = 0; // 被内部函数记住
+  return {
+    inc: () => ++value,
+    dec: () => --value,
+    get: () => value,
+  };
+}
+
+const c = createCounter();
+c.inc();
+c.inc();
+console.log(c.get()); // 2
+c.dec();
+console.log(c.get()); // 1
+
+// 每次调用 createCounter 都会创建独立的作用域
+const c1 = createCounter();
+const c2 = createCounter();
+c1.inc();
+c1.inc();
+c2.inc();
+console.log(c1.get(), c2.get()); // 2 1
+
+// 闭包常见用途：私有变量、函数工厂、防抖节流等
+function makeMultiplier(factor) {
+  return (n) => n * factor;
+}
+const triple = makeMultiplier(3);
+console.log(triple(5)); // 15
+
+// ============================================================
+// 7. 常见坑与对比
+// ============================================================
+console.log("\n---- 7. 常见坑与对比 ----");
+
+// 坑 1：箭头函数不能作为构造函数
+const Person = (name) => {
+  this.name = name;
+};
+// const p = new Person('Ada'); // TypeError: Person is not a constructor
+
+// 坑 2：箭头函数没有 prototype
+console.log('箭头函数 prototype:', double.prototype); // undefined
+
+// 坑 3：返回对象字面量要加括号
+const bad = () => { name: 'Ada' }; // 这里 {} 是函数体，返回 undefined
+console.log('bad():', bad()); // undefined
+
+const good = () => ({ name: 'Ada' });
+console.log('good():', good()); // { name: 'Ada' }
+
+// 坑 4：默认参数与 arguments 的关系
+function testDefault(a, b = 2) {
+  console.log('arguments.length:', arguments.length); // 只统计实际传入的实参
+}
+testDefault(1); // 1
+
+// 坑 5：函数声明与函数表达式提升差异
+console.log('hoisted:', hoisted()); // 合法
+function hoisted() {
+  return '函数声明提升';
+}
+// console.log(notHoisted()); // TypeError
+const notHoisted = () => '函数表达式不提升';
+
+// ============================================================
+// 8. 三种函数写法对比
+// ============================================================
+console.log("\n---- 8. 三种函数写法对比 ----");
+
+// 函数声明
+function f1(a, b) {
+  return a + b;
+}
+
+// 函数表达式
+const f2 = function (a, b) {
+  return a + b;
+};
+
+// 箭头函数
+const f3 = (a, b) => a + b;
+
+console.log(f1(1, 2), f2(1, 2), f3(1, 2)); // 3 3 3
+
+// 关键差异：
+// - 提升：函数声明整体提升；函数表达式和箭头函数只提升变量声明，不提升赋值。
+// - this：普通函数动态绑定；箭头函数继承外层 this，且无法通过 call/apply/bind 改变。
+// - arguments：普通函数有；箭头函数没有。
+// - 构造函数：普通函数可以 new；箭头函数不可以。
+// - prototype：普通函数有；箭头函数没有。
+
+console.log("\n全部示例执行完毕。");
